@@ -134,7 +134,9 @@ app.get('/run', async (req, res) => {
     res.send(result);
   } catch (err) {
     console.error('❌ 執行失敗：', err.message);
-    res.status(500).send(`Error: ${err.message}`);
+    console.error('🔥 詳細錯誤：', err);
+res.status(500).send(`Error: ${err?.response?.data || err?.message || 'Unknown error'}`);
+
   }
 });
 
