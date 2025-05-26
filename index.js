@@ -24,7 +24,7 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 // 建立 Igloohome Access Token
 async function getAccessToken() {
-  const res = await axios.post('https://api.igloohome.io/v2/token', {
+  const res = await axios.post('https://api.igloohome.co/v2/token', {
     grant_type: 'client_credentials',
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
@@ -38,7 +38,7 @@ async function getAccessToken() {
 
 // 建立 PIN
 async function createIgloohomePin(token, start, end) {
-  const url = `https://api.igloohome.io/v2/devices/${DEVICE_ID}/pins/duration/hourly`;
+  const url = `https://api.igloohome.co/v2/devices/${DEVICE_ID}/pins/duration/hourly`;
   const res = await axios.post(url, {
     start,
     end,
