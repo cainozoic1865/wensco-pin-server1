@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: wensco-pin-server
+    env: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node index.js"
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: SHEET_ID
+        value: "1R4T_Vc2-k1-0irUFRZ7mIEp8bWrWucYIWM6eg8ul6FU"
+      - key: SHEET_NAME
+        value: "Form_Responses1"
+      - key: DEVICE_ID
+        value: "IGM31969ae74"
+      - key: BRIDGE_ID
+        value: "EB1X06adb4ee"
+      - key: CLIENT_ID
+        value: "7jqk0h7ogt4dn54dv2s81o5goi"
+      - key: CLIENT_SECRET
+        value: "5ka870fp6p7h229b16qph5c06t4ps71j8vgld594392ah2n4m3v"
+      - key: USER_EMAIL
+        value: "brian@meetingtw.com"
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        value: "render-access@wensco-pin-access.iam.gserviceaccount.com"
+      - key: GOOGLE_PRIVATE_KEY
+        value: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDi/1vqtvo/P4HW\niiTWsniNnATX9Lu0H+xHbKjGKx+dNfNHI1y55sglJsEEbESi1CIzi9cbaOXx0p/3\nwuXJlDJyKRgMNNGfk4EA1jXfYseZoD+7dQHvMnfc6GmTqEKPkg6Jn2pcht40cpDR\ne24awF79XoeI9d0wFdX+SY68V8OwuNeDTE6ZLVYDgvcBhABIe18x71dNwYM1LugH\nNIbFOZJIRXiGgHW1hK0DyCHij1bl+2r4DMdjo+8CWbfaLYfSZvC/bggHvrySZmPi\nBXPGa6yVLFWOPhsxpfDhrVKQ+5TrXrR9RJy4F3Mrzqxo2/ZCZc3UJLyjFAD/DaGi\ngglP6BolAgMBAAECggEACmtT4ewAhDsF2n31yesK5d5wSc9VzE3zelB5ALua/wwq\nZ1dZWr5xQmSgfcj7GjQ9gPsyu53ZgXuRqdLcLvVVSXCBxjxTFjg0NtXI8ZYm+PIQ\n6tRTQJJNoSoD1T9nFWWhXYd1NNu17ayyjAMBNKDO22IQO4+kKvWy9bHqUifUd33h\nB/3Jo1WLCG1Y7mIeFKMN4tcYc7/JWDZFGuvDCGAzIcaACpaXrAll/hItTJtcnRvy\nlWrIrMB11HNbKp2vDfBjTnEknu/47C8/WXN4SLk7TAqE6572M3aWUrscSaRwlHlC\n2gEAdjrS2zWbgGR0gFXknF/gVoqRWfdF2iy6oW9pkwKBgQD8+Fk16Rj5uX3XNxKO\nnyvLRO5TGEG0H0Regqi6FUrPgcfO8+QS+BA9oBLI+kzzfb805sHTh3mRCq8IJOHH\nel22oToKOgstyB2OF4KcPK+tamTpE/AJUtGWdfgubhDpVMF8LJfum2tl62rVYXfP\nVqiCwE3TOmpXH4344sCVsSAdgwKBgQDlt1+3u4KinTBPp7BsG60PX+9ySXpTeb6u\nze3iF8BHzjlQH5IGEUnEsTxbon2ZrRdnCnexrR8DYmHxXdL6QmHwVcr/vWWAyrIP\neRzQOy8m2ATidZPh7AnNEXLfrc/F/cybrVk6Bx33msHCk3yHTViJlxwjV3rwDPmV\nMb4Qa5bBNwKBgAvA6jw0AWIQ+UTXnTgdMya1pDEeLmdVEJMnlPlYZepwSD1YXZ94\nASEr39OQtaSWkhy+IAFZCQ/xJCLHu+nNyK7knNK+0agl5SGl+/6QX0U6bUfbEksM\nmwpXntlhac29j2PampCOjhXlM0iIx81NZHT2xGbtDuXPZIRM3M/Xs/tLAoGBALYF\nmajiwd7Moy1a+KaRP45BPGDY7D8c5wVoU6ilnUzIkg11FqYMKOHcdrE9jjypNTQG\nzVVSkpKB8I3rBHQdCbIAqTv//WASPQmZtEUjwHcNEMHI3QdVm2aM/vNSrKJ8OxbY\nQy2B2jMKw6HEcBZeKVvNCxTOCrIP9exMYAhu2CP9AoGBAOkiVH8MROQmrTaVD/0T\nqKsjm7lxXdJemos8eXTnjGObn4liQ/OumZw5eKWTmcbFTlwz9U0uL4Z+eQXH5+Ey\n4nTUx7cPVks23rdXTMSGpyeE3xSBrc61ewAc49WZd1Lq4o6XgHEbb7pvzHp9F6Q6\n+yiHawTubT8Bzm+0YtCBsmkd\n-----END PRIVATE KEY-----\n"
