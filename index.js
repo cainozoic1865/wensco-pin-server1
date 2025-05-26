@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const axios = require('axios');
+const https = require('https');
 require('dotenv').config();
 
 const SHEET_ID = process.env.SHEET_ID;
@@ -24,13 +25,16 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 // 建立 Igloohome Access Token
 async function getAccessToken() {
+  const agent = new https.Agent({ rejectUnauthorized: false }); // ← 忽略 SSL 憑證驗證
+
   const res = await axios.post('https://api.igloohome.co/v2/token', {
     grant_type: 'client_credentials',
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
     user_email: USER_EMAIL
   }, {
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    httpsAgent: agent
   });
 
   return res.data.access_token;
@@ -38,6 +42,8 @@ async function getAccessToken() {
 
 // 建立 PIN
 async function createIgloohomePin(token, start, end) {
+  const agent = new https.Agent({ rejectUnauthorized: false }); // ← 同樣使用這個 agent
+
   const url = `https://api.igloohome.co/v2/devices/${DEVICE_ID}/pins/duration/hourly`;
   const res = await axios.post(url, {
     start,
@@ -48,7 +54,8 @@ async function createIgloohomePin(token, start, end) {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
-    }
+    },
+    httpsAgent: agent
   });
 
   return res.data.pin;
@@ -106,7 +113,7 @@ async function processSheet() {
   }
 }
 
-// 將「上午 8:00:00」或 Date 格式轉換為 24 小時制字串
+// 將「上午 8:00:00」或 Date 物件轉換為 24 小時制 HH:mm 格式
 function formatTime(value) {
   if (typeof value === 'string') {
     const date = new Date(`2000-01-01 ${value}`);
