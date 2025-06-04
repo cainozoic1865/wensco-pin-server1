@@ -1,128 +1,15 @@
-const express = require('express');
-const { google } = require('googleapis');
-const axios = require('axios');
-const https = require('https');
-require('dotenv').config();
+// ✅ Wensco PIN Server - index.js with improved error handling
+
+import express from 'express';
+import axios from 'axios';
+import dotenv from 'dotenv';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { JWT } from 'google-auth-library';
+
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-const SHEET_ID = process.env.SHEET_ID;
-const SHEET_NAME = process.env.SHEET_NAME;
-const DEVICE_ID = process.env.DEVICE_ID;
-const BRIDGE_ID = process.env.BRIDGE_ID;
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const USER_EMAIL = process.env.USER_EMAIL;
-const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
-
-const auth = new google.auth.JWT(
-  GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  null,
-  GOOGLE_PRIVATE_KEY,
-  ['https://www.googleapis.com/auth/spreadsheets']
-);
-const sheets = google.sheets({ version: 'v4', auth });
-
-async function getAccessToken() {
-  const agent = new https.Agent({ rejectUnauthorized: false });
-
-  const res = await axios.post('https://api.igloohome.co/v2/token', {
-    grant_type: 'client_credentials',
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-    user_email: USER_EMAIL
-  }, {
-    headers: { 'Content-Type': 'application/json' },
-    httpsAgent: agent
-  });
-
-  return res.data.access_token;
-}
-
-async function createIgloohomePin(token, start, end) {
-  const agent = new https.Agent({ rejectUnauthorized: false });
-
-  const url = `https://api.igloohome.co/v2/devices/${DEVICE_ID}/pins/duration/hourly`;
-  const res = await axios.post(url, {
-    start,
-    end,
-    timezone: 'Asia/Taipei',
-    bridge_id: BRIDGE_ID
-  }, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    httpsAgent: agent
-  });
-
-  return res.data.pin;
-}
-
-async function writePinToSheet(rowIndex, pin) {
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!H${rowIndex + 1}`,
-    valueInputOption: 'RAW',
-    requestBody: {
-      values: [[pin]]
-    }
-  });
-}
-
-async function processSheet() {
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: SHEET_NAME
-  });
-
-  const rows = res.data.values;
-  if (!rows || rows.length === 0) {
-    console.log('❗ 表單資料為空');
-    return 'No data';
-  }
-
-  const token = await getAccessToken();
-
-  let resultLog = '';
-
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    const email = row[3];
-    const date = row[4];
-    const startTime = row[5];
-    const endTime = row[6];
-    const pinExists = row[7];
-
-    if (!email || !date || !startTime || !endTime || pinExists) continue;
-
-    const dateStr = new Date(date).toISOString().split('T')[0];
-    const start = new Date(`${dateStr}T${formatTime(startTime)}:00+08:00`);
-    const end = new Date(`${dateStr}T${formatTime(endTime)}:00+08:00`);
-
-    const pin = await createIgloohomePin(token, start.toISOString(), end.toISOString());
-    await writePinToSheet(i, pin);
-
-    const logLine = `✅ 第 ${i + 1} 列建立 PIN：${pin}`;
-    console.log(logLine);
-    resultLog += logLine + '\n';
-  }
-
-  return resultLog || 'No new pins to process';
-}
-
-function formatTime(value) {
-  if (typeof value === 'string') {
-    const date = new Date(`2000-01-01 ${value}`);
-    return date.toTimeString().substring(0, 5);
-  } else {
-    return new Date(value).toTimeString().substring(0, 5);
-  }
-}
-
-// === Express API ===
+const port = process.env.PORT || 10000;
 
 app.get('/', (req, res) => {
   res.send('✅ Wensco PIN Server is running.');
@@ -135,11 +22,107 @@ app.get('/run', async (req, res) => {
   } catch (err) {
     console.error('❌ 執行失敗：', err.message);
     console.error('🔥 詳細錯誤：', err);
-res.status(500).send(`Error: ${err?.response?.data || err?.message || 'Unknown error'}`);
-
+    res.status(500).send(`Error: ${err?.response?.data || err?.message || 'Unknown error'}`);
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+async function getAccessToken() {
+  try {
+    const response = await axios.post('https://api.igloohome.co/v2/token', {
+      grant_type: 'client_credentials',
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
+      user_email: process.env.USER_EMAIL
+    });
+    return response.data.access_token;
+  } catch (err) {
+    console.error('🔒 Token 取得失敗：', err.message);
+    console.error('📦 API Response:', err.response?.data);
+    return null;
+  }
+}
+
+async function createAlgoPin(start, end) {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new Error('無法取得 access token，停止建立 PIN');
+  }
+
+  try {
+    const response = await axios.post(
+      `https://api.igloohome.co/v2/devices/${process.env.DEVICE_ID}/pins/duration/hourly`,
+      {
+        start,
+        end,
+        timezone: 'Asia/Taipei',
+        bridge_id: process.env.BRIDGE_ID
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return response.data.pin;
+  } catch (err) {
+    console.error('🔐 建立 PIN 失敗：', err.message);
+    console.error('📦 API Response:', err.response?.data);
+    return null;
+  }
+}
+
+async function processSheet() {
+  try {
+    const auth = new JWT({
+      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+
+    const doc = new GoogleSpreadsheet(process.env.SHEET_ID, auth);
+    await doc.loadInfo();
+    const sheet = doc.sheetsByTitle[process.env.SHEET_NAME];
+    const rows = await sheet.getRows();
+
+    let updates = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row.PIN && row['預約日期'] && row['開始時間'] && row['結束時間']) {
+        const startDate = parseDateTime(row['預約日期'], row['開始時間']);
+        const endDate = parseDateTime(row['預約日期'], row['結束時間']);
+
+        const pin = await createAlgoPin(startDate.toISOString(), endDate.toISOString());
+        if (!pin) {
+          updates.push(`⚠️ 第 ${i + 2} 列建立 PIN 失敗`);
+          continue;
+        }
+
+        row.PIN = pin;
+        await row.save();
+        updates.push(`✅ 第 ${i + 2} 列建立 PIN：${pin}`);
+      }
+    }
+
+    return updates.length > 0 ? updates.join('\n') : 'No new pins to process';
+  } catch (err) {
+    console.error('🧾 Google Sheet 處理失敗：', err.message);
+    throw err;
+  }
+}
+
+function parseDateTime(dateStr, timeStr) {
+  const date = new Date(dateStr);
+  const [h, m] = timeStr.replace('上午', '').replace('下午', '').trim().split(':');
+  const hour = timeStr.includes('下午') ? parseInt(h) + 12 : parseInt(h);
+  date.setHours(hour);
+  date.setMinutes(parseInt(m));
+  date.setSeconds(0);
+  return date;
+}
+
+app.listen(port, () => {
+  console.log(`🚀 Server is running on port ${port}`);
 });
