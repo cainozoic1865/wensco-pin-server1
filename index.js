@@ -1,4 +1,4 @@
-// index.js
+// index.js (修正版 - 支援中文時間格式解析)
 import express from 'express';
 import axios from 'axios';
 import https from 'https';
@@ -66,6 +66,21 @@ const createAlgoPin = async (accessToken, startTime, endTime) => {
   }
 };
 
+function parseTaiwanTime(dateStr, timeStr) {
+  const date = new Date(dateStr);
+  const isAM = timeStr.includes('上午');
+  const isPM = timeStr.includes('下午');
+  const timeCleaned = timeStr.replace('上午', '').replace('下午', '').trim();
+  const [hourStr, minStr] = timeCleaned.split(':');
+  let hour = parseInt(hourStr);
+  if (isPM && hour < 12) hour += 12;
+  if (isAM && hour === 12) hour = 0;
+  date.setHours(hour);
+  date.setMinutes(parseInt(minStr));
+  date.setSeconds(0);
+  return date.toISOString();
+}
+
 const processSheet = async () => {
   try {
     const doc = new GoogleSpreadsheet(SHEET_ID);
@@ -80,23 +95,30 @@ const processSheet = async () => {
 
     const now = new Date();
     for (const row of rows) {
-      if (row['狀態'] === '待產生') {
-        const start = new Date(row['開始時間']);
-        const end = new Date(row['結束時間']);
+      if (!row['PIN碼']) {
+        try {
+          const start = parseTaiwanTime(row['預約日期'], row['開始時間']);
+          const end = parseTaiwanTime(row['預約日期'], row['結束時間']);
+          const startDate = new Date(start);
+          if (startDate < now) {
+            row['狀態'] = '已過期';
+            await row.save();
+            continue;
+          }
 
-        if (end < now) {
-          row['狀態'] = '已過期';
+          const accessToken = await getAccessToken();
+          const pin = await createAlgoPin(accessToken, start, end);
+
+          row['PIN碼'] = pin;
+          row['狀態'] = 'Success';
           await row.save();
-          continue;
+          console.log(`✅ 為 ${row['Email（接收PIN碼）']} 產生 PIN：${pin}`);
+        } catch (innerErr) {
+          row['狀態'] = '❌ 失敗';
+          row['PIN碼'] = `錯誤: ${innerErr.message}`;
+          await row.save();
+          console.error('❌ 單筆處理失敗：', innerErr.message);
         }
-
-        const accessToken = await getAccessToken();
-        const pin = await createAlgoPin(accessToken, start.toISOString(), end.toISOString());
-
-        row['PIN碼'] = pin;
-        row['狀態'] = '已產生';
-        await row.save();
-        console.log(`✅ 成功產生 PIN：${pin}`);
       }
     }
     return '✅ Google Sheet 處理完成';
